@@ -20,6 +20,7 @@ class HistoryWindow(QMainWindow, Ui_HistoryWindow):
     def initUI(self) -> None:
         res = self.conn.cursor().execute(f"SELECT * FROM history INNER JOIN users ON history.user_id = users.id WHERE history.user_id = {self.currentUserId}").fetchall()
         self.tableWidget.setColumnCount(4)
+        self.tableWidget.setHorizontalHeaderLabels(("id", "user_id", "func", "time"))
         self.tableWidget.setRowCount(0)
 
         for i, row in enumerate(res):
