@@ -125,7 +125,7 @@ class Calculator:
     
     def calculate(self, expression):
         self.listToRPN(self.stringSplit(expression))
-        print(self.stackRPN)
+        # print(self.stackRPN)
         self.stackNumbers.clear()
         for item in self.stackRPN:
             if self.isNumber(item):
@@ -235,11 +235,21 @@ class MainWindow(QMainWindow):
         self.initUi()
         self.connectUi()
     
-    def initDatabases(self):
-        if not os.path.isfile("/home/j4dzg3r/Documents/calendown.sqlite3"):
-            os.mknod("/home/j4dzg3r/Documents/calendown.sqlite3")
+    def initDatabases(self) -> sqlite3.Connection:
+        if os.name == "nt":
+            path = os.path.expanduser("~\\Documents")
+            sep = os.path.expanduser("\\")
+        else:
+            path = os.path.expanduser("~/Documents")
+            sep = "/"
         
-        conn = sqlite3.connect("/home/j4dzg3r/Documents/calendown.sqlite3")
+        if not os.path.isdir(f"{path}{sep}iPlot"):
+            os.mkdir(f"{path}{sep}iPlot")
+
+        if not os.path.isfile(f"{path}{sep}iPlot{sep}plot.sqlite3"):
+            open(f"{path}{sep}iPlot{sep}plot.sqlite3", "w").close()
+        
+        conn = sqlite3.connect(f"{path}{sep}iPlot{sep}plot.sqlite3")
         cur = conn.cursor()
 
         cur.execute("""CREATE TABLE IF NOT EXISTS users (
@@ -256,6 +266,8 @@ class MainWindow(QMainWindow):
                     time text NOT NULL,
                     FOREIGN KEY (user_id) REFERENCES users (id)
         );""")
+
+        conn.commit()
 
         return conn
 
@@ -286,8 +298,6 @@ class MainWindow(QMainWindow):
                 dlg.setText("Я тебя не нашел. Ты зарегистрирован? Может хочешь уйти от ответа?")
                 button = dlg.exec()
 
-                done = False
-
                 if button == QMessageBox.StandardButton.No:
                     while True:
                         password, _ = QInputDialog.getText(self, "Пароль", "Твой логин у меня уже есть. Введи пароль")
@@ -303,11 +313,7 @@ class MainWindow(QMainWindow):
                         else:
                             cur.execute(f"INSERT INTO users (login, password, last_entry) VALUES ('{login}', '{password}', datetime('now'))")
                             self.conn.commit()
-                            done = True
-                            break
-                
-                if done:
-                    break
+                            return cur.execute(f"SELECT MAX(id) FROM users").fetchone()[0]
 
                 if button == QMessageBox.StandardButton.Cancel:
                     sys.exit(0)
@@ -345,7 +351,8 @@ class MainWindow(QMainWindow):
     
     def logg(self, expression):
         cur = self.conn.cursor()
-        cur.execute(f"INSERT INTO history(user_id, func, time) VALUES ({self.currentUserId}, '{expression}', datetime('now'))")
+        print(self.currentUserId)
+        cur.execute("INSERT INTO history(user_id, func, time) VALUES (?, ?, datetime('now'))", (self.currentUserId, expression))
         self.conn.commit()
         return expression
     
