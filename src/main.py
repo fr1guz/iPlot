@@ -5,6 +5,7 @@ import csv
 from PyQt6 import QtCore
 
 import numpy as np
+import numpy.typing as npt
 
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar
@@ -35,11 +36,11 @@ class Calculator:
         self.CLOSED_BRACKET = ")"
         self.BREAK = "?"
         self.SEPARATOR = "."
-        self.stackNumbers = []
-        self.stackOperators = []
-        self.stackRPN = []
+        self.stackNumbers: list[np.float64] = []
+        self.stackOperators: list[str] = []
+        self.stackRPN: list[str] = []
     
-        self.enum_modifiers = {
+        self.enum_modifiers: dict[str, int] = {
             self.BREAK: 0,
             self.OPERATORS[0]: 1,
             self.OPERATORS[1]: 2,
@@ -51,7 +52,7 @@ class Calculator:
             self.CLOSED_BRACKET: 8
         }
 
-        self.priority = [
+        self.priority: list[list[int]] = [
             [4, 1, 1, 1, 1, 1, 1, 1, 5],
             [2, 2, 2, 1, 1, 1, 1, 1, 2],
             [2, 2, 2, 1, 1, 1, 1, 1, 2],
@@ -62,14 +63,14 @@ class Calculator:
             [5, 1, 1, 1, 1, 1, 1, 1, 3]
         ]
     
-    def stringSplit(self, expression: str):
+    def stringSplit(self, expression: str) -> list[str]:
         expression = expression.replace(" ", "").replace("(-", "(0-").replace(f"{self.SEPARATOR}-", f"{self.SEPARATOR}0-")
         if expression[0] == '-':
             expression = "0" + expression
 
         extra = ""
 
-        result = []
+        result: list[str] = []
 
         for i in expression:
             if i in self.OPERATORS or i == self.CLOSED_BRACKET or i == self.OPEN_BRACKET:
@@ -86,14 +87,14 @@ class Calculator:
         result.append(self.BREAK)
         return result
     
-    def isNumber(self, item):
+    def isNumber(self, item: str) -> bool:
         try:
             float(item)
         except ValueError:
             return False
         return True
 
-    def listToRPN(self, arr):
+    def listToRPN(self, arr: list[str]) -> None:
         self.stackRPN.clear()
         self.stackOperators.clear()
         self.stackOperators.append(self.BREAK)
@@ -106,8 +107,7 @@ class Calculator:
                     currentItem = item if item not in self.FUNCTIONS else self.FUNC_KEYWORD
                     previousItem = self.stackOperators[-1] if self.stackOperators[-1] not in self.FUNCTIONS else self.FUNC_KEYWORD
                     whatToDo = self.priority[self.enum_modifiers[previousItem]][self.enum_modifiers[currentItem]]
-                    # print(currentItem, self.stackOperators[-1])
-                    # print(self.stackOperators)
+
                     if whatToDo == 1:
                         self.stackOperators.append(item)
                         break
@@ -120,12 +120,10 @@ class Calculator:
                         return
                     else:
                         raise UnbalancedExpressionError("Проверьте скобки")
-                    # print(self.stackRPN)
                     
     
-    def calculate(self, expression):
+    def calculate(self, expression: str) -> np.float64 | float:
         self.listToRPN(self.stringSplit(expression))
-        # print(self.stackRPN)
         self.stackNumbers.clear()
         for item in self.stackRPN:
             if self.isNumber(item):
@@ -158,13 +156,13 @@ class Calculator:
 
 
 class PlotWidget(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         
         self.calc_class = Calculator()
         self.initUi()
 
-    def initUi(self):
+    def initUi(self) -> None:
         self.mainLayout = QVBoxLayout(self)
 
         self.figure = Figure()
@@ -174,10 +172,9 @@ class PlotWidget(QWidget):
         self.mainLayout.addWidget(self.canvas)
         self.mainLayout.addWidget(self.navToolbar)
     
-    def plot(self, expression: str):
+    def plot(self, expression: str) -> None:
         x = np.around(np.arange(-20, 20, 0.001), decimals=4)
         y = np.array([self.calc_class.calculate(expression.replace("X", f"{i}")) for i in x], dtype=np.float64)
-        # y = np.array([eval(expression.replace("X", f"{i}")) for i in x])
         self.figure.clear()
         ax = self.figure.add_subplot(111)
 
@@ -199,7 +196,7 @@ class HistoryWindow(QMainWindow, Ui_HistoryWindow):
         self.initUI()
         self.connectUI()
     
-    def initUI(self):
+    def initUI(self) -> None:
         res = self.conn.cursor().execute(f"SELECT * FROM history INNER JOIN users ON history.user_id = users.id WHERE history.user_id = {self.currentUserId}").fetchall()
         self.tableWidget.setColumnCount(4)
         self.tableWidget.setRowCount(0)
@@ -210,10 +207,10 @@ class HistoryWindow(QMainWindow, Ui_HistoryWindow):
             for j, elem in enumerate(row):
                 self.tableWidget.setItem(i, j, QTableWidgetItem(str(elem)))
 
-    def connectUI(self):
+    def connectUI(self) -> None:
         self.exportCSV.clicked.connect(self.saveSCV)
 
-    def saveSCV(self):
+    def saveSCV(self) -> None:
         path, ok_pressed = QFileDialog().getSaveFileName(self, "Save File", "/home/j4dzg3r/Documents/untitled.csv", "(*.csv)")
         if ok_pressed:
             cur = self.conn.cursor()
@@ -272,7 +269,7 @@ class MainWindow(QMainWindow):
 
         return conn
 
-    def initUser(self):
+    def initUser(self) -> int:
         while True:
             login, ok_pressed = QInputDialog.getText(self, "Инициализация", "Введи логин (если тебя нет, зарегистрируем)")
             if ok_pressed is False:
@@ -319,7 +316,7 @@ class MainWindow(QMainWindow):
                 if button == QMessageBox.StandardButton.Cancel:
                     sys.exit(0)
         
-    def initUi(self):
+    def initUi(self) -> None:
         self.myCentralWidget = QWidget(self)
         self.vertLabel = QVBoxLayout(self.myCentralWidget)
         self.horLabel = QHBoxLayout(self.myCentralWidget)
@@ -341,18 +338,17 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(self.myCentralWidget)
 
-    def connectUi(self):
+    def connectUi(self) -> None:
         self.plotButton.clicked.connect(lambda: self.plotWidget.plot(self.logg(self.enterFunction.text())))
         self.clearButton.clicked.connect(self.clear)
         self.showHist.clicked.connect(self.history_window.show)
 
-    def clear(self):
+    def clear(self) -> None:
         self.plotWidget.figure.clear()
         self.plotWidget.canvas.draw()
     
-    def logg(self, expression):
+    def logg(self, expression: str) -> str:
         cur = self.conn.cursor()
-        # print(self.currentUserId)
         cur.execute("INSERT INTO history(user_id, func, time) VALUES (?, ?, datetime('now'))", (self.currentUserId, expression))
         self.conn.commit()
         return expression
