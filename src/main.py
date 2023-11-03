@@ -175,7 +175,7 @@ class PlotWidget(QWidget):
         self.mainLayout.addWidget(self.navToolbar)
     
     def plot(self, expression: str):
-        x = np.around(np.arange(-20, 20, 0.1), decimals=4)
+        x = np.around(np.arange(-20, 20, 0.001), decimals=4)
         y = np.array([self.calc_class.calculate(expression.replace("X", f"{i}")) for i in x], dtype=np.float64)
         # y = np.array([eval(expression.replace("X", f"{i}")) for i in x])
         self.figure.clear()
@@ -189,9 +189,10 @@ class PlotWidget(QWidget):
 
 
 class HistoryWindow(QMainWindow, Ui_HistoryWindow):
-    def __init__(self, conn) -> None:
+    def __init__(self, conn: sqlite3.Connection, user_id: int) -> None:
         super().__init__()
 
+        self.currentUserId = user_id
         self.conn = conn
 
         self.setupUi(self)
@@ -199,7 +200,7 @@ class HistoryWindow(QMainWindow, Ui_HistoryWindow):
         self.connectUI()
     
     def initUI(self):
-        res = self.conn.cursor().execute("SELECT * FROM history").fetchall()
+        res = self.conn.cursor().execute(f"SELECT * FROM history INNER JOIN users ON history.user_id = users.id WHERE history.user_id = {self.currentUserId}").fetchall()
         self.tableWidget.setColumnCount(4)
         self.tableWidget.setRowCount(0)
 
@@ -216,7 +217,7 @@ class HistoryWindow(QMainWindow, Ui_HistoryWindow):
         path, ok_pressed = QFileDialog().getSaveFileName(self, "Save File", "/home/j4dzg3r/Documents/untitled.csv", "(*.csv)")
         if ok_pressed:
             cur = self.conn.cursor()
-            cur.execute("SELECT * FROM history")
+            cur.execute(f"SELECT * FROM history INNER JOIN users ON history.user_id = users.id WHERE history.user_id = {self.currentUserId}")
             with open(path, "w") as csv_file:
                 csv_writer = csv.writer(csv_file)
                 csv_writer.writerow([i[0] for i in cur.description])
@@ -230,7 +231,7 @@ class MainWindow(QMainWindow):
         self.conn = self.initDatabases()
         self.currentUserId = self.initUser()
 
-        self.history_window = HistoryWindow(self.conn)
+        self.history_window = HistoryWindow(self.conn, self.currentUserId)
 
         self.initUi()
         self.connectUi()
@@ -351,7 +352,7 @@ class MainWindow(QMainWindow):
     
     def logg(self, expression):
         cur = self.conn.cursor()
-        print(self.currentUserId)
+        # print(self.currentUserId)
         cur.execute("INSERT INTO history(user_id, func, time) VALUES (?, ?, datetime('now'))", (self.currentUserId, expression))
         self.conn.commit()
         return expression
