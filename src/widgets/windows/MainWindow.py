@@ -99,9 +99,9 @@ class MainWindow(QMainWindow):
                             if button == QMessageBox.StandardButton.Cancel:
                                 sys.exit(0)
                         else:
-                            cur.execute(f"INSERT INTO users (login, password, last_entry) VALUES ('{login}', '{password}', datetime('now'))")
+                            cur.execute("INSERT INTO users (login, password, last_entry) VALUES (?, ?, datetime('now'))", (login, password))
                             self.conn.commit()
-                            return cur.execute(f"SELECT MAX(id) FROM users").fetchone()[0]
+                            return cur.execute("SELECT MAX(id) FROM users").fetchone()[0]
 
                 if button == QMessageBox.StandardButton.Cancel:
                     sys.exit(0)
@@ -131,7 +131,7 @@ class MainWindow(QMainWindow):
     def connectUi(self) -> None:
         self.plotButton.clicked.connect(lambda: self.plotWidget.plot(self.logg(self.enterFunction.text())))
         self.clearButton.clicked.connect(self.clear)
-        self.showHist.clicked.connect(self.history_window.show)
+        self.showHist.clicked.connect(self.history_window.showHist)
 
     def clear(self) -> None:
         self.plotWidget.figure.clear()

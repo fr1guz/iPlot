@@ -1,3 +1,4 @@
+import os
 import sqlite3
 import csv
 
@@ -41,3 +42,7 @@ class HistoryWindow(QMainWindow, Ui_HistoryWindow):
                 csv_writer = csv.writer(csv_file)
                 csv_writer.writerow([i[0] for i in cur.description])
                 csv_writer.writerows(cur)
+    
+    def showHist(self):
+        self.initUI()
+        self.show()
